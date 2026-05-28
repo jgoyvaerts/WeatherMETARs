@@ -1,0 +1,33 @@
+# Format: STATION_CODE - Location
+EDDF - Frankfurt
+LFPO - Paris
+RJTT - Tokyo
+WSSS - Singapore
+YSSY - Sydney
+CYHC - Vancouver
+CYUL - Montreal
+CYYZ - Toronto
+KATL - Atlanta
+KAUS - Austin
+KBKF - Denver
+KBNA - Nashville
+KBOS - Boston
+KCLT - Charlotte
+KDCA - Washington DC
+KDFW - Dallas
+KDTW - Detroit
+KHOU - Houston
+KJAX - Jacksonville
+KLAS - Las Vegas
+KLAX - Los Angeles
+KLGA - New York City
+KMDW - Chicago
+KMIA - Miami
+KMSP - Minneapolis-Saint Paul
+KMSY - New Orleans
+KOKC - Oklahoma City
+KPHL - Philadelphia
+KPHX - Phoenix
+KSAT - San Antonio
+KSEA - Seattle
+KSFO - San Francisco

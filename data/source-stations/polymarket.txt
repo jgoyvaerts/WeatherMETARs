@@ -1,0 +1,50 @@
+# Format: STATION_CODE - Location
+EHAM - Amsterdam
+LTAC - Ankara
+KATL - Atlanta
+KAUS - Austin
+ZBAA - Beijing
+SAEZ - Buenos Aires
+RKPK - Busan
+FACT - Cape Town
+ZUUU - Chengdu
+KORD - Chicago
+ZUCK - Chongqing
+KDAL - Dallas
+KBKF - Denver
+ZGGG - Guangzhou
+EFHK - Helsinki
+KHOU - Houston
+LTFM - Istanbul
+WIHH - Jakarta
+OEJN - Jeddah
+OPKC - Karachi
+WMKK - Kuala Lumpur
+EGLC - London
+KLAX - Los Angeles
+VILK - Lucknow
+LEMD - Madrid
+RPLL - Manila
+MMMX - Mexico City
+KMIA - Miami
+LIMC - Milan
+UUWW - Moscow
+EDDM - Munich
+KLGA - New York City
+MPMG - Panama City
+LFPB - Paris
+ZSQD - Qingdao
+KSFO - San Francisco
+SBGR - Sao Paulo
+KSEA - Seattle
+RKSI - Seoul
+ZSPD - Shanghai
+ZGSZ - Shenzhen
+WSSS - Singapore
+RCSS - Taipei
+LLBG - Tel Aviv
+RJTT - Tokyo
+CYYZ - Toronto
+EPWA - Warsaw
+NZWN - Wellington
+ZHHH - Wuhan

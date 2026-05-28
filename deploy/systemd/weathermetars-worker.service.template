@@ -1,0 +1,23 @@
+[Unit]
+Description=Weather METARs polling worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__APP_USER__
+Group=__APP_GROUP__
+WorkingDirectory=__APP_DIR__
+EnvironmentFile=__APP_ENV_FILE__
+Environment=NODE_ENV=production
+ExecStart=__BUN_BIN__ src/workers/poll.ts
+Restart=always
+RestartSec=10
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=__APP_DATA_DIR__
+
+[Install]
+WantedBy=multi-user.target

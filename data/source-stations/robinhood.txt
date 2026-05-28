@@ -1,0 +1,24 @@
+# Format: STATION_CODE - Location
+KATL - Atlanta
+KAUS - Austin
+KBOS - Boston
+KCLT - Charlotte
+KMDW - Chicago
+KDFW - Dallas
+KBKF - Denver
+KDTW - Detroit
+KHOU - Houston
+KJAX - Jacksonville
+KLAS - Las Vegas
+KLAX - Los Angeles
+KMIA - Miami
+KMSP - Minneapolis-Saint Paul
+KBNA - Nashville
+KLGA - New York City
+KOKC - Oklahoma City
+KPHL - Philadelphia
+KPHX - Phoenix
+KSAT - San Antonio
+KSFO - San Francisco
+KSEA - Seattle
+KDCA - Washington DC

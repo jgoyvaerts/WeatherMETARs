@@ -1,0 +1,21 @@
+node_modules
+.DS_Store
+.dev-server.*
+dist
+data/*
+!data/README.md
+!data/source-stations/
+!data/source-stations/*.txt
+dist-ssr
+*.local
+.env*
+!.env.example
+.tanstack
+.wrangler
+.output
+.vinxi
+__unconfig*
+todos.json
+
+# typescript
+*.tsbuildinfo

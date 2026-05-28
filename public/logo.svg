@@ -1,0 +1,13 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="120 120 784 784"
+  role="img"
+  aria-labelledby="title"
+>
+  <title>Weather METARs</title>
+  <circle cx="512" cy="512" r="384" fill="#000" />
+  <path
+    fill="#fff"
+    d="M180 375h73l43 190 42-190h69l43 190 42-190h72l-79 273h-72l-42-179-42 179h-71L180 375Zm384 0h78l64 180 63-180h76v273h-63V480l-56 141h-44l-55-141v168h-63V375Z"
+  />
+</svg>
