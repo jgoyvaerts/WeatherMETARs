@@ -13,7 +13,10 @@ import {
 } from "./backfill-markers.server"
 import type { HistoricalBackfillChunkMarker } from "./backfill-markers.server"
 import { getSqlite, retrySqliteBusy } from "./db.server"
-import { IemRequestError, fetchIemHistoricalMetars } from "./iem.server"
+import {
+  IemRequestError,
+  fetchIemHistoricalMetarsInBatches,
+} from "./iem.server"
 import { ingestObservations } from "./ingest.server"
 import {
   parseRawMetarObservation,
@@ -78,6 +81,7 @@ type ArchiveHourResult = {
 
 type ArchiveFetchResult = {
   observations: MetarObservationInput[]
+  ingestedResult?: IngestResult
   downloadedFileCount: number
   missingFileCount: number
   failedFileCount: number
@@ -200,18 +204,19 @@ export async function runSaoArchiveBackfill(
         stationFilter,
         onProgress
       )
-      const result = ingestObservations(
-        archiveResult.observations,
-        db,
-        archiveResult.observationSource
-      )
+      const result =
+        archiveResult.ingestedResult ??
+        ingestObservations(
+          archiveResult.observations,
+          db,
+          archiveResult.observationSource
+        )
       const allArchiveFilesMissing =
         archiveResult.missingFileCount > 0 &&
         archiveResult.downloadedFileCount === 0 &&
         archiveResult.failedFileCount === 0
       const missingFilesResolvedByFallback =
-        archiveResult.fallbackSource !== null &&
-        archiveResult.observations.length > 0
+        archiveResult.fallbackSource !== null && result.fetchedCount > 0
       const missingFilesAreErrors =
         !missingFilesResolvedByFallback && archiveResult.missingFileCount > 0
       const status =
@@ -484,7 +489,7 @@ async function archiveResultWithFallback(
   )
 
   try {
-    const observations = await fetchIemFallbackObservations(
+    const ingestedResult = await fetchAndIngestIemFallback(
       chunk,
       options,
       onProgress
@@ -492,11 +497,12 @@ async function archiveResultWithFallback(
 
     return {
       ...archiveResult,
-      observations,
+      observations: [],
+      ingestedResult,
       observationSource: IEM_ASOS_REQUEST_URL,
       fallbackSource: "iem-cgi",
       errorText:
-        observations.length === 0
+        ingestedResult.fetchedCount === 0
           ? "IEM CGI fallback returned no observations"
           : archiveResult.errorText,
     }
@@ -509,42 +515,61 @@ async function archiveResultWithFallback(
   }
 }
 
-async function fetchIemFallbackObservations(
+async function fetchAndIngestIemFallback(
   chunk: ArchiveDayChunk,
   options: SaoArchiveBackfillOptions,
   onProgress: (message: string) => void
 ) {
-  const observations: MetarObservationInput[] = []
+  const summary: IngestResult = {
+    fetchedCount: 0,
+    insertedCount: 0,
+    skippedCount: 0,
+  }
 
   for (const scope of iemFallbackScopes(options.stationCodes)) {
-    const scopeObservations = await fetchIemFallbackWithRetry(
+    await fetchIemFallbackWithRetry(
       scope,
       chunk,
       options,
-      onProgress
-    )
+      onProgress,
+      (observations) => {
+        const result = ingestObservations(
+          observations,
+          getSqlite(),
+          IEM_ASOS_REQUEST_URL
+        )
+        summary.fetchedCount += result.fetchedCount
+        summary.insertedCount += result.insertedCount
+        summary.skippedCount += result.skippedCount
 
-    for (const observation of scopeObservations) {
-      observations.push(observation)
-    }
+        onProgress(
+          `Ingested IEM CGI fallback batch fetched=${result.fetchedCount} inserted=${result.insertedCount} duplicates=${result.skippedCount} totalFetched=${summary.fetchedCount}`
+        )
+      }
+    )
   }
 
-  return observations
+  return summary
 }
 
 async function fetchIemFallbackWithRetry(
   scope: { type: "global"; id: "all" } | { type: "station"; id: string },
   chunk: ArchiveDayChunk,
   options: SaoArchiveBackfillOptions,
-  onProgress: (message: string) => void
+  onProgress: (message: string) => void,
+  onBatch: (observations: MetarObservationInput[]) => void | Promise<void>
 ) {
   for (let attempt = 0; ; attempt += 1) {
     try {
-      return await fetchIemHistoricalMetars({
-        scope,
-        startUtc: chunk.startUtc,
-        endUtc: chunk.endUtc,
-      })
+      await fetchIemHistoricalMetarsInBatches(
+        {
+          scope,
+          startUtc: chunk.startUtc,
+          endUtc: chunk.endUtc,
+        },
+        onBatch
+      )
+      return
     } catch (error) {
       if (
         !shouldRetryIemFallbackError(error) ||

@@ -1,4 +1,7 @@
-import { parse } from "csv-parse/sync"
+import { Readable } from "node:stream"
+import type { ReadableStream as NodeReadableStream } from "node:stream/web"
+import { parse as parseCsvStream } from "csv-parse"
+import { parse as parseCsvSync } from "csv-parse/sync"
 
 import {
   IEM_ASOS_REQUEST_URL,
@@ -83,6 +86,7 @@ const IEM_DATA_COLUMNS = [
 ] as const
 
 const DEFAULT_REPORT_TYPES = ["1", "3", "4"] as const
+const DEFAULT_STREAM_BATCH_SIZE = 10_000
 
 export async function fetchIemAsosNetworks(): Promise<IemNetwork[]> {
   const response = await fetch(IEM_NETWORKS_URL, {
@@ -135,6 +139,67 @@ export async function fetchIemHistoricalMetars({
   return parseIemAsosCsv(await response.text())
 }
 
+export async function fetchIemHistoricalMetarsInBatches(
+  options: IemFetchOptions,
+  onBatch: (observations: MetarObservationInput[]) => void | Promise<void>,
+  batchSize = DEFAULT_STREAM_BATCH_SIZE
+) {
+  const url = iemAsosUrl(options)
+  const response = await fetch(url, {
+    headers: { "User-Agent": getAwcUserAgent() },
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new IemRequestError({
+      message: `IEM ASOS request failed ${response.status} ${response.statusText}: ${text.slice(0, 500)}`,
+      status: response.status,
+      retryAfterMs: retryAfterHeaderMs(response.headers.get("retry-after")),
+    })
+  }
+
+  if (!response.body) {
+    const observations = parseIemAsosCsv(await response.text())
+    await onBatch(observations)
+    return observations.length
+  }
+
+  const parser = Readable.fromWeb(
+    response.body as unknown as NodeReadableStream<Uint8Array>
+  ).pipe(
+    parseCsvStream({
+      columns: true,
+      relax_column_count: true,
+      relax_quotes: true,
+      skip_empty_lines: true,
+      trim: true,
+    })
+  )
+  let batch: MetarObservationInput[] = []
+  let observationCount = 0
+
+  for await (const record of parser as AsyncIterable<IemCsvRecord>) {
+    const observation = observationFromIemRecord(record)
+    if (!observation) {
+      continue
+    }
+
+    batch.push(observation)
+    observationCount += 1
+
+    if (batch.length >= batchSize) {
+      await onBatch(batch)
+      batch = []
+    }
+  }
+
+  if (batch.length > 0) {
+    await onBatch(batch)
+  }
+
+  return observationCount
+}
+
 export function iemAsosUrl({
   scope,
   startUtc,
@@ -171,7 +236,7 @@ export function iemAsosUrl({
 }
 
 export function parseIemAsosCsv(csv: string): MetarObservationInput[] {
-  const records: IemCsvRecord[] = parse(csv, {
+  const records: IemCsvRecord[] = parseCsvSync(csv, {
     columns: true,
     relax_column_count: true,
     relax_quotes: true,
@@ -179,47 +244,51 @@ export function parseIemAsosCsv(csv: string): MetarObservationInput[] {
     trim: true,
   })
 
-  return records.flatMap((record) => {
-    const rawTextValue = cleanString(record.metar)
-    const observedAtUtc = normalizeIemValid(record.valid)
+  return records.flatMap((record) => observationFromIemRecord(record) ?? [])
+}
 
-    if (!rawTextValue || !observedAtUtc) {
-      return []
-    }
+function observationFromIemRecord(
+  record: IemCsvRecord
+): MetarObservationInput | null {
+  const rawTextValue = cleanString(record.metar)
+  const observedAtUtc = normalizeIemValid(record.valid)
 
-    const rawText = normalizeRawMetarText(rawTextValue)
-    const stationCode = canonicalStationCode(record.station, rawText)
-    if (!stationCode) {
-      return []
-    }
+  if (!rawTextValue || !observedAtUtc) {
+    return null
+  }
 
-    const rawTemperaturePair = temperaturePairFromRawMetar(rawText)
+  const rawText = normalizeRawMetarText(rawTextValue)
+  const stationCode = canonicalStationCode(record.station, rawText)
+  if (!stationCode) {
+    return null
+  }
 
-    return {
-      stationCode,
-      observedAtUtc,
-      lat: numberValue(record.lat),
-      lon: numberValue(record.lon),
-      tempC: rawTemperaturePair
-        ? rawTemperaturePair.temperatureC
-        : fahrenheitToC(numberValue(record.tmpf)),
-      dewpointC: rawTemperaturePair
-        ? rawTemperaturePair.dewpointC
-        : fahrenheitToC(numberValue(record.dwpf)),
-      windDirDegrees: integerValue(record.drct),
-      windSpeedKt: integerValue(record.sknt),
-      windGustKt: integerValue(record.gust),
-      visibilityStatuteMi: cleanString(record.vsby),
-      altimeterInHg: numberValue(record.alti),
-      seaLevelPressureMb: numberValue(record.mslp),
-      wxString: cleanString(record.wxcodes),
-      flightCategory: null,
-      metarType: metarType(rawText),
-      clouds: cloudLayers(record),
-      rawText,
-      elevM: numberValue(record.elevation),
-    }
-  })
+  const rawTemperaturePair = temperaturePairFromRawMetar(rawText)
+
+  return {
+    stationCode,
+    observedAtUtc,
+    lat: numberValue(record.lat),
+    lon: numberValue(record.lon),
+    tempC: rawTemperaturePair
+      ? rawTemperaturePair.temperatureC
+      : fahrenheitToC(numberValue(record.tmpf)),
+    dewpointC: rawTemperaturePair
+      ? rawTemperaturePair.dewpointC
+      : fahrenheitToC(numberValue(record.dwpf)),
+    windDirDegrees: integerValue(record.drct),
+    windSpeedKt: integerValue(record.sknt),
+    windGustKt: integerValue(record.gust),
+    visibilityStatuteMi: cleanString(record.vsby),
+    altimeterInHg: numberValue(record.alti),
+    seaLevelPressureMb: numberValue(record.mslp),
+    wxString: cleanString(record.wxcodes),
+    flightCategory: null,
+    metarType: metarType(rawText),
+    clouds: cloudLayers(record),
+    rawText,
+    elevM: numberValue(record.elevation),
+  }
 }
 
 function cloudLayers(record: IemCsvRecord): CloudLayer[] {
