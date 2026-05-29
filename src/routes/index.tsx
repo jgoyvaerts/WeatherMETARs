@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 
 import { StationSearch } from "@/components/station-search"
 
@@ -6,8 +6,8 @@ export const Route = createFileRoute("/")({ component: App })
 
 function App() {
   return (
-    <main className="min-h-svh bg-background px-4 py-5 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100svh-2.5rem)] w-full max-w-7xl flex-col">
+    <main className="flex flex-1 bg-background px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
         <header className="-ml-3 flex h-8 items-center gap-1.5 px-2.5">
           <img
             alt=""
@@ -30,26 +30,6 @@ function App() {
             </div>
           </div>
         </div>
-        <footer className="space-y-3 pb-1 text-center">
-          <p className="text-sm leading-6 text-muted-foreground">
-            Open-source, auditable observations from public aviation weather
-            sources.
-          </p>
-          <nav
-            aria-label="Footer"
-            className="flex justify-center gap-6 text-sm font-medium text-muted-foreground"
-          >
-            <Link className="transition-colors hover:text-foreground" to="/faq">
-              FAQ
-            </Link>
-            <a
-              className="transition-colors hover:text-foreground"
-              href="https://github.com/jgoyvaerts/WeatherMETARs"
-            >
-              GitHub
-            </a>
-          </nav>
-        </footer>
       </div>
     </main>
   )

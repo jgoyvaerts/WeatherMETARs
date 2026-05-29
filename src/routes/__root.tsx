@@ -1,4 +1,11 @@
-import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRoute,
+} from "@tanstack/react-router"
+
+import { SiteFooter } from "@/components/site-footer"
 
 import appCss from "../styles.css?url"
 
@@ -56,13 +63,25 @@ export const Route = createRootRoute({
     scripts: plausibleScripts,
   }),
   notFoundComponent: () => (
-    <main className="container mx-auto p-4 pt-16">
+    <main className="container mx-auto flex-1 p-4 pt-16">
       <h1>404</h1>
       <p>The requested page could not be found.</p>
     </main>
   ),
+  component: RootLayout,
   shellComponent: RootDocument,
 })
+
+function RootLayout() {
+  return (
+    <div className="flex min-h-svh flex-col bg-background">
+      <div className="flex flex-1 flex-col">
+        <Outlet />
+      </div>
+      <SiteFooter />
+    </div>
+  )
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (

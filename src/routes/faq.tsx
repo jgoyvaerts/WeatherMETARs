@@ -9,7 +9,7 @@ const deployedVersion = import.meta.env.VITE_COMMIT_HASH ?? "unknown"
 
 function FaqRoute() {
   return (
-    <main className="min-h-svh bg-background px-6 py-8">
+    <main className="flex-1 bg-background px-6 py-8">
       <div className="mx-auto max-w-3xl space-y-10">
         <header className="space-y-6 border-b pb-8">
           <Button asChild className="-ml-3" variant="ghost">

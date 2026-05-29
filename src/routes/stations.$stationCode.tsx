@@ -148,7 +148,7 @@ function StationRoute() {
 
   if (!station) {
     return (
-      <main className="min-h-svh bg-background px-6 py-8">
+      <main className="flex-1 bg-background px-6 py-8">
         <div className="mx-auto max-w-5xl space-y-8">
           <HomeLogoLink />
           <Alert variant="destructive">
@@ -166,7 +166,7 @@ function StationRoute() {
   }
 
   return (
-    <main className="min-h-svh bg-background px-4 py-5 sm:px-6 lg:px-8">
+    <main className="flex-1 bg-background px-4 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-8">
         <header className="space-y-5 border-b pb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
