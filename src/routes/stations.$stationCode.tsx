@@ -12,10 +12,16 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { PublicStationDayResponse } from "@/lib/weather/station-day-public"
 import { formatTemperature } from "@/lib/weather/units"
 import type { TemperatureUnit } from "@/lib/weather/types"
+import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/stations/$stationCode")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -132,6 +138,14 @@ function StationRoute() {
     }
   }
 
+  function selectDate(date: string) {
+    setDateInput(date)
+
+    if (date !== data.localDate) {
+      void navigateToDate(date)
+    }
+  }
+
   if (!station) {
     return (
       <main className="min-h-svh bg-background px-6 py-8">
@@ -220,28 +234,15 @@ function StationRoute() {
                 >
                   <ChevronLeftIcon className="size-4" />
                 </Button>
-                <div className="relative">
-                  <CalendarIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="station-date"
-                    className="h-10 w-36 pl-9"
-                    aria-label="Observation date in YYYY-MM-DD format"
-                    inputMode="numeric"
-                    maxLength={10}
-                    pattern="\d{4}-\d{2}-\d{2}"
-                    placeholder="YYYY-MM-DD"
-                    title="Use YYYY-MM-DD"
-                    type="text"
-                    value={dateInput}
-                    onBlur={commitDateInput}
-                    onChange={(event) => updateDateInput(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.currentTarget.blur()
-                      }
-                    }}
-                  />
-                </div>
+                <StationDatePicker
+                  inputValue={dateInput}
+                  maxDate={data.dateNavigation.maxDate}
+                  minDate={data.dateNavigation.minDate}
+                  selectedDate={data.localDate}
+                  onBlur={commitDateInput}
+                  onInputChange={updateDateInput}
+                  onSelectDate={selectDate}
+                />
                 <Button
                   aria-label="Next day"
                   className="size-10"
@@ -339,10 +340,226 @@ function isAllowedDate(value: string, minDate: string, maxDate: string) {
   return isIsoDate(value) && value >= minDate && value <= maxDate
 }
 
+function StationDatePicker({
+  inputValue,
+  selectedDate,
+  minDate,
+  maxDate,
+  onBlur,
+  onInputChange,
+  onSelectDate,
+}: {
+  inputValue: string
+  selectedDate: string
+  minDate: string
+  maxDate: string
+  onBlur: () => void
+  onInputChange: (value: string) => void
+  onSelectDate: (value: string) => void
+}) {
+  const selectedMonth = React.useMemo(
+    () => startOfIsoMonth(selectedDate),
+    [selectedDate]
+  )
+  const [open, setOpen] = React.useState(false)
+  const [displayMonth, setDisplayMonth] = React.useState(selectedMonth)
+  const days = React.useMemo(
+    () => calendarDaysForMonth(displayMonth),
+    [displayMonth]
+  )
+  const previousMonth = addIsoMonths(displayMonth, -1)
+  const nextMonth = addIsoMonths(displayMonth, 1)
+  const canGoPreviousMonth = monthEndIsoDate(previousMonth) >= minDate
+  const canGoNextMonth = monthStartIsoDate(nextMonth) <= maxDate
+
+  React.useEffect(() => {
+    if (!open) {
+      setDisplayMonth(selectedMonth)
+    }
+  }, [open, selectedMonth])
+
+  function updateOpen(nextOpen: boolean) {
+    if (nextOpen) {
+      setDisplayMonth(selectedMonth)
+    }
+
+    setOpen(nextOpen)
+  }
+
+  function selectCalendarDate(date: string) {
+    if (!isAllowedDate(date, minDate, maxDate)) {
+      return
+    }
+
+    onSelectDate(date)
+    setOpen(false)
+  }
+
+  return (
+    <div className="flex items-center">
+      <Popover open={open} onOpenChange={updateOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            aria-label="Choose observation date"
+            className="h-10 w-10 rounded-r-none"
+            size="icon"
+            title="Choose observation date"
+            type="button"
+            variant="outline"
+          >
+            <CalendarIcon className="size-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-72 p-3">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Button
+                aria-label="Previous month"
+                className="size-8"
+                disabled={!canGoPreviousMonth}
+                size="icon"
+                type="button"
+                variant="ghost"
+                onClick={() => setDisplayMonth(previousMonth)}
+              >
+                <ChevronLeftIcon className="size-4" />
+              </Button>
+              <div
+                aria-live="polite"
+                className="text-sm font-medium text-foreground"
+              >
+                {formatMonthLabel(displayMonth)}
+              </div>
+              <Button
+                aria-label="Next month"
+                className="size-8"
+                disabled={!canGoNextMonth}
+                size="icon"
+                type="button"
+                variant="ghost"
+                onClick={() => setDisplayMonth(nextMonth)}
+              >
+                <ChevronRightIcon className="size-4" />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-7 text-center text-xs font-medium text-muted-foreground">
+              {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+                <div className="py-1" key={day}>
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {days.map((day) => {
+                const date = formatIsoDate(day)
+                const isSelected = date === selectedDate
+                const isOutsideMonth =
+                  monthStartIsoDate(day) !== monthStartIsoDate(displayMonth)
+                const isDisabled = !isAllowedDate(date, minDate, maxDate)
+
+                return (
+                  <button
+                    aria-pressed={isSelected}
+                    className={cn(
+                      "flex size-8 items-center justify-center rounded-md text-sm transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-30",
+                      isOutsideMonth && "text-muted-foreground/50",
+                      isSelected &&
+                        "bg-primary text-primary-foreground hover:bg-primary"
+                    )}
+                    disabled={isDisabled}
+                    key={date}
+                    type="button"
+                    onClick={() => selectCalendarDate(date)}
+                  >
+                    {day.getUTCDate()}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+      <Input
+        id="station-date"
+        className="h-10 w-36 rounded-l-none border-l-0"
+        aria-label="Observation date in YYYY-MM-DD format"
+        inputMode="numeric"
+        maxLength={10}
+        pattern="\d{4}-\d{2}-\d{2}"
+        placeholder="YYYY-MM-DD"
+        title="Use YYYY-MM-DD"
+        type="text"
+        value={inputValue}
+        onBlur={onBlur}
+        onChange={(event) => onInputChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.currentTarget.blur()
+          }
+        }}
+      />
+    </div>
+  )
+}
+
 function addIsoDays(value: string, amount: number) {
   const date = new Date(`${value}T00:00:00.000Z`)
   date.setUTCDate(date.getUTCDate() + amount)
   return date.toISOString().slice(0, 10)
+}
+
+function addIsoMonths(value: string, amount: number) {
+  const date = new Date(`${value}T00:00:00.000Z`)
+  date.setUTCMonth(date.getUTCMonth() + amount)
+  date.setUTCDate(1)
+  return formatIsoDate(date)
+}
+
+function startOfIsoMonth(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`)
+  date.setUTCDate(1)
+  return formatIsoDate(date)
+}
+
+function monthStartIsoDate(value: string | Date) {
+  const date =
+    typeof value === "string" ? new Date(`${value}T00:00:00.000Z`) : value
+  return formatIsoDate(
+    new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1))
+  )
+}
+
+function monthEndIsoDate(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`)
+  return formatIsoDate(
+    new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0))
+  )
+}
+
+function calendarDaysForMonth(value: string) {
+  const monthStart = new Date(`${value}T00:00:00.000Z`)
+  const gridStart = new Date(monthStart)
+  gridStart.setUTCDate(monthStart.getUTCDate() - monthStart.getUTCDay())
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(gridStart)
+    date.setUTCDate(gridStart.getUTCDate() + index)
+    return date
+  })
+}
+
+function formatIsoDate(value: Date) {
+  return value.toISOString().slice(0, 10)
+}
+
+function formatMonthLabel(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    timeZone: "UTC",
+    year: "numeric",
+  }).format(new Date(`${value}T00:00:00.000Z`))
 }
 
 function formatLocalTime(value: string) {
