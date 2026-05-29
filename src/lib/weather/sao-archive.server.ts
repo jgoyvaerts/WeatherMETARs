@@ -273,6 +273,7 @@ export async function runSaoArchiveBackfill(
           `SAO archive chunk ${chunk.startUtc} had ${archiveResult.failedFileCount} failed file(s) and ${archiveResult.missingFileCount} missing file(s)`
         )
       }
+      runBestEffortGarbageCollection()
     } catch (error) {
       const errorText = error instanceof Error ? error.message : String(error)
       if (!chunkMarked && !terminalStatusWriteStarted) {
@@ -1133,6 +1134,13 @@ function retryAfterHeaderMs(value: string | null) {
   }
 
   return null
+}
+
+function runBestEffortGarbageCollection() {
+  const maybeBun = (globalThis as typeof globalThis & {
+    Bun?: { gc?: (force?: boolean) => void }
+  }).Bun
+  maybeBun?.gc?.(true)
 }
 
 function parseDateStart(date: string) {

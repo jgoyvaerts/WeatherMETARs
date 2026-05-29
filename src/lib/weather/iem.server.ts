@@ -86,7 +86,7 @@ const IEM_DATA_COLUMNS = [
 ] as const
 
 const DEFAULT_REPORT_TYPES = ["1", "3", "4"] as const
-const DEFAULT_STREAM_BATCH_SIZE = 10_000
+const DEFAULT_STREAM_BATCH_SIZE = 5_000
 
 export async function fetchIemAsosNetworks(): Promise<IemNetwork[]> {
   const response = await fetch(IEM_NETWORKS_URL, {
@@ -188,13 +188,16 @@ export async function fetchIemHistoricalMetarsInBatches(
     observationCount += 1
 
     if (batch.length >= batchSize) {
-      await onBatch(batch)
+      const flushedBatch = batch
       batch = []
+      await onBatch(flushedBatch)
+      runBestEffortGarbageCollection()
     }
   }
 
   if (batch.length > 0) {
     await onBatch(batch)
+    runBestEffortGarbageCollection()
   }
 
   return observationCount
@@ -377,4 +380,11 @@ function retryAfterHeaderMs(value: string | null) {
   }
 
   return null
+}
+
+function runBestEffortGarbageCollection() {
+  const maybeBun = (globalThis as typeof globalThis & {
+    Bun?: { gc?: (force?: boolean) => void }
+  }).Bun
+  maybeBun?.gc?.(true)
 }
