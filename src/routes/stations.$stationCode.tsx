@@ -284,12 +284,7 @@ function StationRoute() {
             </div>
             {data.dayCoverage.status === "current" &&
             data.ingestStatus?.finishedAt ? (
-              <p
-                className="text-sm text-muted-foreground"
-                title={data.ingestStatus.finishedAt}
-              >
-                Last poll {formatLocalTime(data.ingestStatus.finishedAt)}
-              </p>
+              <LastPollTime value={data.ingestStatus.finishedAt} />
             ) : (
               <HistoricalCoverageLabel status={data.dayCoverage.status} />
             )}
@@ -334,6 +329,20 @@ function formatLocalTime(value: string) {
     minute: "2-digit",
     second: "2-digit",
   }).format(date)
+}
+
+function LastPollTime({ value }: { value: string }) {
+  const [localTime, setLocalTime] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    setLocalTime(formatLocalTime(value))
+  }, [value])
+
+  return (
+    <p className="text-sm text-muted-foreground" title={value}>
+      Last poll <time dateTime={value}>{localTime ?? "..."}</time>
+    </p>
+  )
 }
 
 function TemperatureStat({ label, value }: { label: string; value: string }) {
