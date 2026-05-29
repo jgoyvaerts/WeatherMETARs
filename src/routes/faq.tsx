@@ -55,6 +55,10 @@ function FaqRoute() {
               primarily the raw SAO archive for broad backfills and the IEM ASOS
               endpoint for station or network-scoped backfills.
             </p>
+            <p>
+              The polling worker refreshes current METAR data every five
+              minutes.
+            </p>
             <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
               <li>
                 NOAA METAR cache:{" "}
