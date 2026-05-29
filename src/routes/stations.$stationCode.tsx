@@ -79,6 +79,8 @@ function StationRoute() {
   const nextDate = addIsoDays(data.localDate, 1)
   const canGoPrevious = previousDate >= data.dateNavigation.minDate
   const canGoNext = nextDate <= data.dateNavigation.maxDate
+  const todayDate = data.dateNavigation.maxDate
+  const canGoToday = data.localDate !== todayDate
   const temperatureStatDate =
     data.dayCoverage.status === "current"
       ? `${data.localDate} (so far)`
@@ -216,51 +218,21 @@ function StationRoute() {
               </p>
             </div>
 
-            <div className="lg:pb-1">
-              <div className="flex items-center gap-1">
-                <Button
-                  aria-label="Previous day"
-                  className="size-10"
-                  disabled={!canGoPrevious}
-                  size="icon"
-                  title="Previous day"
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    if (canGoPrevious) {
-                      void navigateToDate(previousDate)
-                    }
-                  }}
-                >
-                  <ChevronLeftIcon className="size-4" />
-                </Button>
-                <StationDatePicker
-                  inputValue={dateInput}
-                  maxDate={data.dateNavigation.maxDate}
-                  minDate={data.dateNavigation.minDate}
-                  selectedDate={data.localDate}
-                  onBlur={commitDateInput}
-                  onInputChange={updateDateInput}
-                  onSelectDate={selectDate}
-                />
-                <Button
-                  aria-label="Next day"
-                  className="size-10"
-                  disabled={!canGoNext}
-                  size="icon"
-                  title="Next day"
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    if (canGoNext) {
-                      void navigateToDate(nextDate)
-                    }
-                  }}
-                >
-                  <ChevronRightIcon className="size-4" />
-                </Button>
-              </div>
-            </div>
+            <DateNavigationControls
+              canGoNext={canGoNext}
+              canGoPrevious={canGoPrevious}
+              canGoToday={canGoToday}
+              dateInput={dateInput}
+              maxDate={data.dateNavigation.maxDate}
+              minDate={data.dateNavigation.minDate}
+              nextDate={nextDate}
+              previousDate={previousDate}
+              selectedDate={data.localDate}
+              onDateBlur={commitDateInput}
+              onDateInputChange={updateDateInput}
+              onNavigateDate={(date) => void navigateToDate(date)}
+              onSelectDate={selectDate}
+            />
           </div>
         </header>
 
@@ -325,6 +297,116 @@ function StationRoute() {
   )
 }
 
+function DateNavigationControls({
+  canGoPrevious,
+  canGoNext,
+  canGoToday,
+  previousDate,
+  nextDate,
+  dateInput,
+  selectedDate,
+  minDate,
+  maxDate,
+  onDateBlur,
+  onDateInputChange,
+  onSelectDate,
+  onNavigateDate,
+}: {
+  canGoPrevious: boolean
+  canGoNext: boolean
+  canGoToday: boolean
+  previousDate: string
+  nextDate: string
+  dateInput: string
+  selectedDate: string
+  minDate: string
+  maxDate: string
+  onDateBlur: () => void
+  onDateInputChange: (value: string) => void
+  onSelectDate: (value: string) => void
+  onNavigateDate: (value: string) => void
+}) {
+  const sharedPickerProps = {
+    inputValue: dateInput,
+    maxDate,
+    minDate,
+    selectedDate,
+    onBlur: onDateBlur,
+    onInputChange: onDateInputChange,
+    onSelectDate,
+  }
+
+  function goPrevious() {
+    if (canGoPrevious) {
+      onNavigateDate(previousDate)
+    }
+  }
+
+  function goNext() {
+    if (canGoNext) {
+      onNavigateDate(nextDate)
+    }
+  }
+
+  function goToday() {
+    if (canGoToday) {
+      onNavigateDate(maxDate)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1 lg:pb-1">
+      <DateStepButton
+        disabled={!canGoPrevious}
+        label="Previous day"
+        onClick={goPrevious}
+      >
+        <ChevronLeftIcon className="size-4" />
+      </DateStepButton>
+      <StationDatePicker {...sharedPickerProps} />
+      <DateStepButton disabled={!canGoNext} label="Next day" onClick={goNext}>
+        <ChevronRightIcon className="size-4" />
+      </DateStepButton>
+      <Button
+        className="h-10 px-4"
+        disabled={!canGoToday}
+        type="button"
+        variant="outline"
+        onClick={goToday}
+      >
+        Today
+      </Button>
+    </div>
+  )
+}
+
+function DateStepButton({
+  disabled,
+  label,
+  children,
+  onClick,
+}: {
+  disabled: boolean
+  label: string
+  children: React.ReactNode
+  onClick: () => void
+}) {
+  return (
+    <Button
+      aria-label={label}
+      className="size-10"
+      disabled={disabled}
+      size="icon"
+      title={label}
+      type="button"
+      variant="outline"
+      onClick={onClick}
+    >
+      {children}
+    </Button>
+  )
+}
+
 function isIsoDate(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false
@@ -341,6 +423,7 @@ function isAllowedDate(value: string, minDate: string, maxDate: string) {
 }
 
 function StationDatePicker({
+  inputId = "station-date",
   inputValue,
   selectedDate,
   minDate,
@@ -349,6 +432,7 @@ function StationDatePicker({
   onInputChange,
   onSelectDate,
 }: {
+  inputId?: string
   inputValue: string
   selectedDate: string
   minDate: string
@@ -482,8 +566,8 @@ function StationDatePicker({
         </PopoverContent>
       </Popover>
       <Input
-        id="station-date"
-        className="h-10 w-36 rounded-l-none border-l-0"
+        id={inputId}
+        className="h-10 w-32 rounded-l-none border-l-0"
         aria-label="Observation date in YYYY-MM-DD format"
         inputMode="numeric"
         maxLength={10}
