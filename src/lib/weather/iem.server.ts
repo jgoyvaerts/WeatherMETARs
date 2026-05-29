@@ -383,8 +383,10 @@ function retryAfterHeaderMs(value: string | null) {
 }
 
 function runBestEffortGarbageCollection() {
-  const maybeBun = (globalThis as typeof globalThis & {
-    Bun?: { gc?: (force?: boolean) => void }
-  }).Bun
+  const maybeBun = (
+    globalThis as typeof globalThis & {
+      Bun?: { gc?: (force?: boolean) => void }
+    }
+  ).Bun
   maybeBun?.gc?.(true)
 }
