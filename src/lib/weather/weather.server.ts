@@ -471,7 +471,8 @@ function chunkCoversStation(
 ) {
   if (chunk.source === IEM_SAO_ARCHIVE_BASE_URL) {
     return (
-      (chunk.scopeType === "sao-archive" || chunk.scopeType === "gap-repair") &&
+      (chunk.scopeType === "sao-archive" ||
+        chunk.scopeType.startsWith("gap-repair")) &&
       scopeCoversStation(chunk.scopeId, stationIds)
     )
   }

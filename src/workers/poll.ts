@@ -49,11 +49,12 @@ async function poll() {
       })
       if (
         repair.repairedWindowCount > 0 ||
+        repair.skippedCompletedWindowCount > 0 ||
         repair.skippedNotReadyCount > 0 ||
         repair.skippedWindowCount > 0
       ) {
         console.log(
-          `[${new Date().toISOString()}] METAR gap repair checked=${repair.checkedGapCount} planned=${repair.plannedWindowCount} repaired=${repair.repairedWindowCount} skippedNotReady=${repair.skippedNotReadyCount} skippedWindows=${repair.skippedWindowCount} fetched=${repair.fetchedCount} inserted=${repair.insertedCount} duplicates=${repair.duplicateCount} missingFiles=${repair.missingFileCount} failedChunks=${repair.failedChunkCount} failedFiles=${repair.failedFileCount}`
+          `[${new Date().toISOString()}] METAR gap repair checked=${repair.checkedGapCount} planned=${repair.plannedWindowCount} repaired=${repair.repairedWindowCount} skippedCompleted=${repair.skippedCompletedWindowCount} skippedNotReady=${repair.skippedNotReadyCount} skippedWindows=${repair.skippedWindowCount} fetched=${repair.fetchedCount} inserted=${repair.insertedCount} duplicates=${repair.duplicateCount} missingFiles=${repair.missingFileCount} failedChunks=${repair.failedChunkCount} failedFiles=${repair.failedFileCount}`
         )
       }
     } catch (error) {

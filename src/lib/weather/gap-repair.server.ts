@@ -14,7 +14,7 @@ const DEFAULT_CONCURRENCY = 8
 const DEFAULT_MAX_RETRIES = 3
 const DEFAULT_RETRY_BASE_MS = 1000
 const DEFAULT_RETRY_MAX_MS = 30_000
-const GAP_REPAIR_SCOPE_TYPE = "gap-repair"
+const GAP_REPAIR_SCOPE_TYPE = "gap-repair-v2"
 
 type CurrentIngestSuccessRow = {
   finishedAt: string
@@ -38,6 +38,7 @@ export type MetarGapRepairRunSummary = {
   checkedGapCount: number
   plannedWindowCount: number
   repairedWindowCount: number
+  skippedCompletedWindowCount: number
   skippedNotReadyCount: number
   skippedWindowCount: number
   fetchedCount: number
@@ -118,7 +119,8 @@ export async function runMetarGapRepair(
     )
 
     addBackfillSummary(summary, backfillSummary)
-    summary.repairedWindowCount += 1
+    summary.repairedWindowCount += backfillSummary.requestedCount
+    summary.skippedCompletedWindowCount += backfillSummary.skippedCount
   }
 
   return summary
@@ -273,6 +275,7 @@ function emptySummary(): MetarGapRepairRunSummary {
     checkedGapCount: 0,
     plannedWindowCount: 0,
     repairedWindowCount: 0,
+    skippedCompletedWindowCount: 0,
     skippedNotReadyCount: 0,
     skippedWindowCount: 0,
     fetchedCount: 0,
