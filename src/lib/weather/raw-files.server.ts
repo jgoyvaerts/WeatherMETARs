@@ -5,10 +5,11 @@ import zlib from "node:zlib"
 import type Database from "better-sqlite3"
 
 import { getRawMetarsDir } from "./config.server"
-import { getSqlite } from "./db.server"
+import { checkpointSqliteWal, getSqlite } from "./db.server"
 import { normalizeMetarStationCode } from "./raw-metar.server"
 
 const LOCAL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+const LEGACY_RAW_METAR_CHECKPOINT_FILE_INTERVAL = 1000
 
 export type RawMetarAppend = {
   stationCode: string
@@ -23,6 +24,7 @@ export type RawMetarEntry = {
 }
 
 export type LegacyRawMetarMigrationOptions = {
+  checkpointEveryFiles?: number | null
   deleteFiles?: boolean
   dryRun?: boolean
   maxFiles?: number | null
@@ -167,6 +169,7 @@ export function appendRawMetars(appends: RawMetarAppend[]) {
 }
 
 export function migrateLegacyRawMetarFiles({
+  checkpointEveryFiles = LEGACY_RAW_METAR_CHECKPOINT_FILE_INTERVAL,
   deleteFiles = false,
   dryRun = false,
   maxFiles = null,
@@ -229,11 +232,27 @@ export function migrateLegacyRawMetarFiles({
       summary.deletedFileCount += 1
     }
 
-    if (summary.scannedFileCount % 1000 === 0) {
+    if (
+      !dryRun &&
+      db &&
+      checkpointEveryFiles !== null &&
+      summary.scannedFileCount % checkpointEveryFiles === 0
+    ) {
+      checkpointSqliteWal("PASSIVE", db)
+    }
+
+    if (
+      summary.scannedFileCount % LEGACY_RAW_METAR_CHECKPOINT_FILE_INTERVAL ===
+      0
+    ) {
       onProgress(
         `Legacy raw METAR migration scanned=${summary.scannedFileCount} migrated=${summary.migratedFileCount} deleted=${summary.deletedFileCount} skipped=${summary.skippedFileCount} entries=${summary.importedEntryCount}`
       )
     }
+  }
+
+  if (!dryRun && db) {
+    checkpointSqliteWal("TRUNCATE", db)
   }
 
   if (deleteFiles && !dryRun) {

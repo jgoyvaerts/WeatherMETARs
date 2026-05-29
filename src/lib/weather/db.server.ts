@@ -24,7 +24,15 @@ const SQLITE_BUSY_TIMEOUT_MS = 30_000
 const SQLITE_BUSY_RETRY_MAX_RETRIES = 8
 const SQLITE_BUSY_RETRY_BASE_MS = 250
 const SQLITE_BUSY_RETRY_MAX_MS = 5_000
+const SQLITE_WAL_AUTOCHECKPOINT_PAGES = 1000
+const SQLITE_JOURNAL_SIZE_LIMIT_BYTES = 64 * 1024 * 1024
 const require = createRequire(import.meta.url)
+
+export type SqliteWalCheckpointMode =
+  | "PASSIVE"
+  | "FULL"
+  | "RESTART"
+  | "TRUNCATE"
 
 export type SqliteBusyRetryOptions = {
   maxRetries?: number
@@ -46,6 +54,8 @@ export function getSqlite() {
     sqlite.pragma(`busy_timeout = ${SQLITE_BUSY_TIMEOUT_MS}`)
     sqlite.pragma("journal_mode = WAL")
     sqlite.pragma("synchronous = NORMAL")
+    sqlite.pragma(`wal_autocheckpoint = ${SQLITE_WAL_AUTOCHECKPOINT_PAGES}`)
+    sqlite.pragma(`journal_size_limit = ${SQLITE_JOURNAL_SIZE_LIMIT_BYTES}`)
     sqlite.pragma("foreign_keys = ON")
   }
 
@@ -55,6 +65,13 @@ export function getSqlite() {
   }
 
   return sqlite
+}
+
+export function checkpointSqliteWal(
+  mode: SqliteWalCheckpointMode = "PASSIVE",
+  db: Database.Database = getSqlite()
+) {
+  db.pragma(`wal_checkpoint(${mode})`)
 }
 
 export async function retrySqliteBusy<TResult>(
