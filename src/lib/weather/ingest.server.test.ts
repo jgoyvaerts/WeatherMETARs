@@ -203,6 +203,31 @@ describe("ingestObservations", () => {
     )
   })
 
+  it("keeps historical station days incomplete when expected observations are missing", () => {
+    upsertStations([shanghaiStation()])
+    ingestObservations(
+      halfHourlyShanghaiObservations(
+        "2026-05-28T16:00:00.000Z",
+        "2026-05-29T14:30:00.000Z"
+      )
+    )
+
+    insertSuccessfulSaoChunk(
+      "2026-05-28T00:00:00Z",
+      "2026-05-29T00:00:00Z",
+      "2026-05-29T00:01:00.000Z"
+    )
+    insertSuccessfulSaoChunk(
+      "2026-05-29T00:00:00Z",
+      "2026-05-30T00:00:00Z",
+      "2026-05-30T00:01:00.000Z"
+    )
+
+    expect(getStationDayFromDb("ZSPD", "2026-05-29").dayCoverage.status).toBe(
+      "incomplete"
+    )
+  })
+
   it("caps requested station days at the station current local date", () => {
     upsertStations([denverStation()])
     ingestObservations([
@@ -473,6 +498,21 @@ function denverStation(): AwcStation {
   return station("KDEN", "Denver Intl", "DEN")
 }
 
+function shanghaiStation(): AwcStation {
+  return {
+    id: "ZSPD",
+    icaoId: "ZSPD",
+    iataId: "PVG",
+    faaId: null,
+    site: "Shanghai Pudong Intl",
+    lat: 31.146,
+    lon: 121.8,
+    elev: 4,
+    state: null,
+    country: "CN",
+  }
+}
+
 function station(
   stationCode: string,
   site: string,
@@ -489,6 +529,47 @@ function station(
     elev: 1656,
     state: "CO",
     country: "US",
+  }
+}
+
+function halfHourlyShanghaiObservations(startUtc: string, endUtc: string) {
+  const observations: MetarObservationInput[] = []
+  const cursor = new Date(startUtc)
+  const end = new Date(endUtc)
+
+  while (cursor <= end) {
+    observations.push(shanghaiObservation(cursor.toISOString()))
+    cursor.setUTCMinutes(cursor.getUTCMinutes() + 30)
+  }
+
+  return observations
+}
+
+function shanghaiObservation(observedAtUtc: string): MetarObservationInput {
+  const observedAt = new Date(observedAtUtc)
+  const time = `${String(observedAt.getUTCDate()).padStart(2, "0")}${String(
+    observedAt.getUTCHours()
+  ).padStart(2, "0")}${String(observedAt.getUTCMinutes()).padStart(2, "0")}`
+
+  return {
+    stationCode: "ZSPD",
+    observedAtUtc,
+    lat: 31.146,
+    lon: 121.8,
+    tempC: 23,
+    dewpointC: 13,
+    windDirDegrees: 20,
+    windSpeedKt: 10,
+    windGustKt: null,
+    visibilityStatuteMi: "6+",
+    altimeterInHg: 29.94,
+    seaLevelPressureMb: null,
+    wxString: null,
+    flightCategory: "VFR",
+    metarType: "METAR",
+    clouds: [],
+    rawText: `METAR ZSPD ${time}Z 02005MPS CAVOK 23/13 Q1014 NOSIG`,
+    elevM: 4,
   }
 }
 

@@ -22,6 +22,7 @@ import {
 import { roundFahrenheitFromC } from "./units"
 import { listHistoricalBackfillChunkMarkers } from "./backfill-markers.server"
 import { readRawMetarEntries } from "./raw-files.server"
+import { findStationDayObservationGaps } from "./station-day-gaps.server"
 import type {
   IngestStatus,
   ObservationRow,
@@ -227,7 +228,12 @@ export function getStationDayFromDb(
       localDate
     ),
     dateNavigation: emptyDateNavigation(maxDate),
-    dayCoverage: dayCoverageForStationDay(station, localDate, maxDate),
+    dayCoverage: dayCoverageForStationDay(
+      station,
+      localDate,
+      maxDate,
+      observations
+    ),
   }
 }
 
@@ -358,7 +364,8 @@ function latestIngestStatus(): IngestStatus | null {
 function dayCoverageForStationDay(
   station: StationSummary,
   localDate: string,
-  currentStationLocalDate: string
+  currentStationLocalDate: string,
+  observations: ObservationRow[]
 ): StationDayCoverage {
   const { startUtc, endUtc } = utcRangeForLocalDate(localDate, station.timezone)
 
@@ -377,6 +384,19 @@ function dayCoverageForStationDay(
   )
 
   if (!utcRangeCovered(startUtc, endUtc, chunks)) {
+    return {
+      status: "incomplete",
+      coverageStartedAtUtc: startUtc,
+      coverageEndedAtUtc: endUtc,
+      completedAt: null,
+    }
+  }
+
+  const observationGaps = findStationDayObservationGaps(observations, {
+    startUtc,
+    endUtc,
+  })
+  if (observationGaps.length > 0) {
     return {
       status: "incomplete",
       coverageStartedAtUtc: startUtc,

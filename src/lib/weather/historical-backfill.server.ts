@@ -401,7 +401,7 @@ function chunkParams(chunk: Chunk) {
 }
 
 function parseDateStart(date: string) {
-  return new Date(`${date}T00:00:00.000Z`)
+  return date.includes("T") ? new Date(date) : new Date(`${date}T00:00:00.000Z`)
 }
 
 function formatUtc(date: Date) {

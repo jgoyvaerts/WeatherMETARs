@@ -89,11 +89,14 @@ async function reconcileDayIfDue() {
       reconcile.reconciledWindowCount > 0 ||
       reconcile.skippedNotReadyCount > 0 ||
       reconcile.skippedWindowCount > 0 ||
+      reconcile.repairedStationGapWindowCount > 0 ||
+      reconcile.skippedStationGapWindowCount > 0 ||
+      reconcile.failedStationGapWindowCount > 0 ||
       reconcile.failedChunkCount > 0 ||
       reconcile.failedFileCount > 0
     ) {
       console.log(
-        `[${new Date().toISOString()}] METAR day reconcile checked=${reconcile.checkedWindowCount} planned=${reconcile.plannedWindowCount} reconciled=${reconcile.reconciledWindowCount} skippedCompleted=${reconcile.skippedCompletedWindowCount} skippedNotReady=${reconcile.skippedNotReadyCount} skippedWindows=${reconcile.skippedWindowCount} fetched=${reconcile.fetchedCount} inserted=${reconcile.insertedCount} duplicates=${reconcile.duplicateCount} missingFiles=${reconcile.missingFileCount} failedChunks=${reconcile.failedChunkCount} failedFiles=${reconcile.failedFileCount}`
+        `[${new Date().toISOString()}] METAR day reconcile checked=${reconcile.checkedWindowCount} planned=${reconcile.plannedWindowCount} reconciled=${reconcile.reconciledWindowCount} skippedCompleted=${reconcile.skippedCompletedWindowCount} skippedNotReady=${reconcile.skippedNotReadyCount} skippedWindows=${reconcile.skippedWindowCount} checkedStationDays=${reconcile.checkedStationDayCount} detectedStationGaps=${reconcile.detectedStationGapCount} plannedStationGapWindows=${reconcile.plannedStationGapWindowCount} repairedStationGapWindows=${reconcile.repairedStationGapWindowCount} skippedStationGapWindows=${reconcile.skippedStationGapWindowCount} failedStationGapWindows=${reconcile.failedStationGapWindowCount} fetched=${reconcile.fetchedCount} inserted=${reconcile.insertedCount} duplicates=${reconcile.duplicateCount} missingFiles=${reconcile.missingFileCount} failedChunks=${reconcile.failedChunkCount} failedFiles=${reconcile.failedFileCount}`
       )
     }
   } catch (error) {
