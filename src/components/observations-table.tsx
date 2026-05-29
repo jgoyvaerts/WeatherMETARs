@@ -23,6 +23,12 @@ type ObservationsTableProps = {
   unit: TemperatureUnit
 }
 
+const fixedObservationColumns = [
+  { key: "observedAtUtc", className: "w-28" },
+  { key: "tempC", className: "w-24" },
+  { key: "dewpointC", className: "w-28" },
+] as const
+
 export function ObservationsTable({
   observations,
   unit,
@@ -85,7 +91,13 @@ export function ObservationsTable({
 
   return (
     <div className="overflow-x-auto rounded-lg border">
-      <Table>
+      <Table className="min-w-[44rem] table-fixed">
+        <colgroup>
+          {fixedObservationColumns.map((column) => (
+            <col className={column.className} key={column.key} />
+          ))}
+          <col />
+        </colgroup>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
