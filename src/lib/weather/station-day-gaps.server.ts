@@ -138,12 +138,21 @@ function inferCadenceMs(observedTimes: number[]) {
     counts.set(roundedDeltaMs, (counts.get(roundedDeltaMs) ?? 0) + 1)
   }
 
-  const [best] = Array.from(counts.entries()).sort(
-    ([leftCadenceMs, leftCount], [rightCadenceMs, rightCount]) =>
-      rightCount - leftCount || leftCadenceMs - rightCadenceMs
-  )
+  let bestCadenceMs: number | null = null
+  let bestCount = 0
 
-  return best ? best[0] : null
+  for (const [cadenceMs, count] of counts) {
+    if (
+      count > bestCount ||
+      (count === bestCount &&
+        (bestCadenceMs === null || cadenceMs < bestCadenceMs))
+    ) {
+      bestCadenceMs = cadenceMs
+      bestCount = count
+    }
+  }
+
+  return bestCadenceMs
 }
 
 function formatUtc(date: Date) {
