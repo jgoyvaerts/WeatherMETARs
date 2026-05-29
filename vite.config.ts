@@ -21,6 +21,31 @@ function gitCommitHash() {
   }
 }
 
+const PUBLIC_ASSET_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
+const publicAssetRouteRules = Object.fromEntries(
+  [
+    "/apple-touch-icon.png",
+    "/favicon.ico",
+    "/favicon.svg",
+    "/icon-192.png",
+    "/icon-512.png",
+    "/interactive-brokers-logo.svg",
+    "/interactive-brokers-symbol-red.svg",
+    "/logo.svg",
+    "/manifest.json",
+    "/polymarket-icon-blue.svg",
+    "/robinhood-icon-green.svg",
+  ].map((route) => [
+    route,
+    {
+      headers: {
+        "cache-control": PUBLIC_ASSET_CACHE_CONTROL,
+      },
+    },
+  ])
+)
+
 const config = defineConfig(({ command }) => ({
   define: {
     "import.meta.env.VITE_COMMIT_HASH": JSON.stringify(gitCommitHash()),
@@ -30,7 +55,8 @@ const config = defineConfig(({ command }) => ({
     devtools(),
     tailwindcss(),
     tanstackStart(),
-    command === "build" && nitro({ preset: "bun" }),
+    command === "build" &&
+      nitro({ preset: "bun", routeRules: publicAssetRouteRules }),
     viteReact(),
   ],
 }))

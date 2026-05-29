@@ -19,7 +19,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fontsource-variable/geist": "^5.2.9",
     "@tailwindcss/vite": "^4",
     "@tanstack/react-router": "latest",
     "@tanstack/react-start": "latest",

@@ -23,6 +23,11 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
+        name: "description",
+        content:
+          "Browse auditable METAR weather observations, station temperatures, and raw aviation weather reports.",
+      },
+      {
         title: "Weather METARs",
       },
     ],
@@ -42,10 +47,6 @@ export const Route = createRootRoute({
         rel: "apple-touch-icon",
         sizes: "180x180",
         href: "/apple-touch-icon.png",
-      },
-      {
-        rel: "manifest",
-        href: "/manifest.json",
       },
       {
         rel: "stylesheet",
