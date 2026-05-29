@@ -74,6 +74,7 @@ bun run dev          # TanStack Start dev server
 bun run worker:poll  # long-running 5 minute poller
 bun run ingest:once  # one station sync/current METAR ingest cycle
 bun run backfill:historical -- --all --dry-run
+bun run migrate:legacy-raw -- --dry-run
 bun run typecheck
 bun run test
 bun run lint
@@ -111,6 +112,22 @@ bun run backfill:historical -- --list-networks
 ```
 
 Full global history is large. Plan for substantial disk usage and a long-running process.
+
+## Legacy Raw File Migration
+
+Older deployments may have raw METAR text files under `data/raw-metars`. These are not imported during web or worker startup.
+
+Preview the import:
+
+```bash
+bun run migrate:legacy-raw -- --dry-run
+```
+
+Import and remove each legacy file after it is stored in SQLite:
+
+```bash
+bun run migrate:legacy-raw -- --delete-files
+```
 
 ## Deployment
 

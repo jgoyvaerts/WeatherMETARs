@@ -12,6 +12,7 @@
     "worker:poll": "tsx src/workers/poll.ts",
     "ingest:once": "tsx src/workers/ingest-once.ts",
     "backfill:historical": "tsx src/workers/backfill-historical.ts",
+    "migrate:legacy-raw": "tsx src/workers/migrate-legacy-raw-metars.ts",
     "test": "vitest run",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\"",

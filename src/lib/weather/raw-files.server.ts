@@ -10,8 +10,6 @@ import { normalizeMetarStationCode } from "./raw-metar.server"
 
 const LOCAL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
-let migratedLegacyRawDir: string | null = null
-
 export type RawMetarAppend = {
   stationCode: string
   localDate: string
@@ -22,6 +20,21 @@ export type RawMetarAppend = {
 export type RawMetarEntry = {
   observedAtUtc: string
   rawText: string
+}
+
+export type LegacyRawMetarMigrationOptions = {
+  deleteFiles?: boolean
+  dryRun?: boolean
+  maxFiles?: number | null
+  onProgress?: (message: string) => void
+}
+
+export type LegacyRawMetarMigrationSummary = {
+  scannedFileCount: number
+  migratedFileCount: number
+  deletedFileCount: number
+  skippedFileCount: number
+  importedEntryCount: number
 }
 
 export function rawMetarPath(stationCode: string, localDate: string) {
@@ -58,7 +71,6 @@ export function readRawMetarEntries(
   const normalizedStationCode = normalizeRawMetarStationCode(stationCode)
   const normalizedLocalDate = normalizeRawMetarLocalDateOrThrow(localDate)
   const db = getSqlite()
-  ensureLegacyRawFilesMigrated(db)
 
   const stationId = findStationRawId(db, normalizedStationCode)
   if (stationId === null) {
@@ -86,7 +98,6 @@ export function writeRawMetarEntries(
   const normalizedStationCode = normalizeRawMetarStationCode(stationCode)
   const normalizedLocalDate = normalizeRawMetarLocalDateOrThrow(localDate)
   const db = getSqlite()
-  ensureLegacyRawFilesMigrated(db)
 
   if (entries.length === 0) {
     const stationId = findStationRawId(db, normalizedStationCode)
@@ -155,24 +166,38 @@ export function appendRawMetars(appends: RawMetarAppend[]) {
   }
 }
 
-export function resetRawMetarStorageForTests() {
-  migratedLegacyRawDir = null
-}
-
-function ensureLegacyRawFilesMigrated(db: Database.Database) {
+export function migrateLegacyRawMetarFiles({
+  deleteFiles = false,
+  dryRun = false,
+  maxFiles = null,
+  onProgress = () => {},
+}: LegacyRawMetarMigrationOptions = {}): LegacyRawMetarMigrationSummary {
   const rawDir = getRawMetarsDir()
-  if (migratedLegacyRawDir === rawDir) {
-    return
+  const summary: LegacyRawMetarMigrationSummary = {
+    scannedFileCount: 0,
+    migratedFileCount: 0,
+    deletedFileCount: 0,
+    skippedFileCount: 0,
+    importedEntryCount: 0,
   }
 
   if (!fs.existsSync(rawDir)) {
-    migratedLegacyRawDir = rawDir
-    return
+    onProgress(`Legacy raw METAR directory does not exist: ${rawDir}`)
+    return summary
   }
 
+  const db = dryRun ? null : getSqlite()
+
   for (const legacyFile of legacyRawMetarFiles(rawDir)) {
+    if (maxFiles !== null && summary.scannedFileCount >= maxFiles) {
+      break
+    }
+
+    summary.scannedFileCount += 1
+
     const legacyKey = legacyRawMetarFileKey(rawDir, legacyFile)
     if (!legacyKey) {
+      summary.skippedFileCount += 1
       continue
     }
 
@@ -181,23 +206,41 @@ function ensureLegacyRawFilesMigrated(db: Database.Database) {
       legacyKey.localDate
     )
     if (!legacyEntries) {
+      summary.skippedFileCount += 1
       continue
     }
 
     if (legacyEntries.length > 0) {
-      mergeRawMetarEntriesIntoDb(
-        db,
-        legacyKey.stationCode,
-        legacyKey.localDate,
-        legacyEntries
-      )
+      if (!dryRun && db) {
+        mergeRawMetarEntriesIntoDb(
+          db,
+          legacyKey.stationCode,
+          legacyKey.localDate,
+          legacyEntries
+        )
+      }
+
+      summary.migratedFileCount += 1
+      summary.importedEntryCount += legacyEntries.length
     }
 
-    fs.rmSync(legacyFile, { force: true })
+    if (deleteFiles && !dryRun) {
+      fs.rmSync(legacyFile, { force: true })
+      summary.deletedFileCount += 1
+    }
+
+    if (summary.scannedFileCount % 1000 === 0) {
+      onProgress(
+        `Legacy raw METAR migration scanned=${summary.scannedFileCount} migrated=${summary.migratedFileCount} deleted=${summary.deletedFileCount} skipped=${summary.skippedFileCount} entries=${summary.importedEntryCount}`
+      )
+    }
   }
 
-  removeEmptyLegacyRawDirectories(rawDir)
-  migratedLegacyRawDir = rawDir
+  if (deleteFiles && !dryRun) {
+    removeEmptyLegacyRawDirectories(rawDir)
+  }
+
+  return summary
 }
 
 function* legacyRawMetarFiles(rawDir: string): Generator<string> {

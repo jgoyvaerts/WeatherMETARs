@@ -146,3 +146,18 @@ The workflow:
 4. Runs `deploy/remote-deploy.sh` on the VPS.
 
 The remote script installs dependencies on the VPS, builds the Nitro/Bun output, restarts both systemd services, and checks the local web endpoint.
+
+## Legacy Raw File Import
+
+Raw METAR text files are not imported during web or worker startup. If the server still has files under `$APP_DATA_DIR/raw-metars`, run the import manually in `tmux` or another detached shell:
+
+```bash
+cd /opt/weathermetars/app
+set -a
+. /etc/weathermetars/weathermetars.env
+set +a
+bun run migrate:legacy-raw -- --dry-run
+bun run migrate:legacy-raw -- --delete-files
+```
+
+The `--delete-files` mode removes each legacy text file only after it has been written into SQLite.

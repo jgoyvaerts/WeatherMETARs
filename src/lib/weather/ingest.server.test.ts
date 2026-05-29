@@ -8,7 +8,11 @@ import { closeSqliteForTests, getSqlite } from "./db.server"
 import { IEM_SAO_ARCHIVE_BASE_URL } from "./config.server"
 import { ingestObservations, upsertStations } from "./ingest.server"
 import { normalizeRawMetarText } from "./raw-metar.server"
-import { rawMetarPath, readRawMetarEntries } from "./raw-files.server"
+import {
+  migrateLegacyRawMetarFiles,
+  rawMetarPath,
+  readRawMetarEntries,
+} from "./raw-files.server"
 import { getStationDayFromDb, searchStationsInDb } from "./weather.server"
 import type { AwcStation } from "./awc.server"
 import type { MetarObservationInput } from "./types"
@@ -432,15 +436,36 @@ describe("rawMetarPath", () => {
       "utf8"
     )
 
+    const summary = migrateLegacyRawMetarFiles({ deleteFiles: true })
+
     expect(rawTexts("KDEN", "2026-05-28")).toEqual([
       "METAR KDEN 281653Z 04004KT 10SM SCT040 18/11 A3012",
     ])
     expect(fs.existsSync(rawPath)).toBe(false)
+    expect(summary).toMatchObject({
+      scannedFileCount: 1,
+      migratedFileCount: 1,
+      deletedFileCount: 1,
+      importedEntryCount: 1,
+    })
     expect(
       getSqlite()
         .prepare("SELECT COUNT(*) AS count FROM station_day_raw_metars")
         .get()
     ).toMatchObject({ count: 1 })
+  })
+
+  it("does not import legacy raw files during normal reads", () => {
+    const rawPath = rawMetarPath("KDEN", "2026-05-28")
+    fs.mkdirSync(path.dirname(rawPath), { recursive: true })
+    fs.writeFileSync(
+      rawPath,
+      "2026-05-28T16:53:00.000Z\tMETAR KDEN 281653Z 04004KT 10SM SCT040 18/11 A3012\n",
+      "utf8"
+    )
+
+    expect(rawTexts("KDEN", "2026-05-28")).toEqual([])
+    expect(fs.existsSync(rawPath)).toBe(true)
   })
 })
 
