@@ -68,7 +68,6 @@ render_template() {
 
 install -d -o "$APP_USER" -g "$APP_GROUP" -m 755 "$APP_DIR"
 install -d -o "$APP_USER" -g "$APP_GROUP" -m 750 "$APP_DATA_DIR"
-install -d -o "$APP_USER" -g "$APP_GROUP" -m 750 "$APP_DATA_DIR/raw-metars"
 install -d -o root -g "$APP_GROUP" -m 750 "$(dirname "$APP_ENV_FILE")"
 
 if [ ! -f "$APP_ENV_FILE" ]; then
@@ -77,6 +76,7 @@ NODE_ENV=production
 HOST=$APP_HOST
 PORT=$APP_PORT
 WEATHERMETARS_DB_PATH=$APP_DATA_DIR/weather-metars.sqlite
+# Optional legacy import path for old raw METAR text files.
 WEATHERMETARS_RAW_DIR=$APP_DATA_DIR/raw-metars
 AWC_USER_AGENT="WeatherMetars/0.1 (contact: ops@example.com)"
 EOF

@@ -153,6 +153,22 @@ export function migrateSqlite(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS ingest_runs_source_id_idx
       ON ingest_runs(source, id);
 
+    CREATE TABLE IF NOT EXISTS station_raw_ids (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      station_code TEXT NOT NULL UNIQUE
+    );
+
+    CREATE TABLE IF NOT EXISTS station_day_raw_metars (
+      station_id INTEGER NOT NULL,
+      local_date TEXT NOT NULL,
+      payload BLOB NOT NULL,
+      PRIMARY KEY(station_id, local_date),
+      FOREIGN KEY(station_id) REFERENCES station_raw_ids(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS station_day_raw_metars_local_date_idx
+      ON station_day_raw_metars(local_date);
+
     CREATE TABLE IF NOT EXISTS historical_backfill_chunks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       source TEXT NOT NULL,

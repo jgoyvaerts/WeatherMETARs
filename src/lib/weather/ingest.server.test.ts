@@ -8,7 +8,7 @@ import { closeSqliteForTests, getSqlite } from "./db.server"
 import { IEM_SAO_ARCHIVE_BASE_URL } from "./config.server"
 import { ingestObservations, upsertStations } from "./ingest.server"
 import { normalizeRawMetarText } from "./raw-metar.server"
-import { rawMetarPath } from "./raw-files.server"
+import { rawMetarPath, readRawMetarEntries } from "./raw-files.server"
 import { getStationDayFromDb, searchStationsInDb } from "./weather.server"
 import type { AwcStation } from "./awc.server"
 import type { MetarObservationInput } from "./types"
@@ -53,8 +53,19 @@ describe("ingestObservations", () => {
     const first = ingestObservations([observation])
     const second = ingestObservations([observation])
 
-    const rawPath = rawMetarPath("KDEN", "2026-05-28")
-    const rawLines = rawTexts(rawPath)
+    const rawLines = rawTexts("KDEN", "2026-05-28")
+    const rawRow = getSqlite()
+      .prepare(
+        `
+        SELECT raw.station_id AS stationId,
+          raw.local_date AS localDate,
+          raw.payload AS payload
+        FROM station_day_raw_metars raw
+        JOIN station_raw_ids station ON station.id = raw.station_id
+        WHERE station.station_code = 'KDEN'
+      `
+      )
+      .get() as { stationId: number; localDate: string; payload: Uint8Array }
 
     expect(first).toMatchObject({
       fetchedCount: 1,
@@ -67,6 +78,12 @@ describe("ingestObservations", () => {
       skippedCount: 1,
     })
     expect(rawLines).toEqual([observation.rawText])
+    expect(rawRow).toMatchObject({
+      stationId: expect.any(Number),
+      localDate: "2026-05-28",
+      payload: expect.any(Uint8Array),
+    })
+    expect(fs.existsSync(path.join(tempDir, "raw-metars"))).toBe(false)
   })
 
   it("replaces prefixless historical duplicates with richer current observations", () => {
@@ -88,7 +105,7 @@ describe("ingestObservations", () => {
 
     const first = ingestObservations([prefixless])
     const second = ingestObservations([current])
-    const rows = rawTexts(rawMetarPath("KDEN", "2026-05-28"))
+    const rows = rawTexts("KDEN", "2026-05-28")
 
     expect(first).toMatchObject({
       fetchedCount: 1,
@@ -214,8 +231,7 @@ describe("ingestObservations", () => {
 
     ingestObservations([highFrequency, routine])
 
-    const rawPath = rawMetarPath("KDEN", "2026-05-28")
-    const rawLines = rawTexts(rawPath)
+    const rawLines = rawTexts("KDEN", "2026-05-28")
     const stationDay = getStationDayFromDb("KDEN", "2026-05-28")
 
     expect(rawLines).toEqual([
@@ -313,7 +329,7 @@ describe("ingestObservations", () => {
 
     const first = ingestObservations([highFrequency])
     const second = ingestObservations([routine])
-    const rows = rawTexts(rawMetarPath("KDEN", "2026-05-28"))
+    const rows = rawTexts("KDEN", "2026-05-28")
     const stationDay = getStationDayFromDb("KDEN", "2026-05-28")
 
     expect(first.insertedCount).toBe(1)
@@ -406,6 +422,26 @@ describe("rawMetarPath", () => {
       "Invalid METAR local date"
     )
   })
+
+  it("migrates legacy raw files into SQLite and removes them", () => {
+    const rawPath = rawMetarPath("KDEN", "2026-05-28")
+    fs.mkdirSync(path.dirname(rawPath), { recursive: true })
+    fs.writeFileSync(
+      rawPath,
+      "2026-05-28T16:53:00.000Z\tMETAR KDEN 281653Z 04004KT 10SM SCT040 18/11 A3012\n",
+      "utf8"
+    )
+
+    expect(rawTexts("KDEN", "2026-05-28")).toEqual([
+      "METAR KDEN 281653Z 04004KT 10SM SCT040 18/11 A3012",
+    ])
+    expect(fs.existsSync(rawPath)).toBe(false)
+    expect(
+      getSqlite()
+        .prepare("SELECT COUNT(*) AS count FROM station_day_raw_metars")
+        .get()
+    ).toMatchObject({ count: 1 })
+  })
 })
 
 function denverStation(): AwcStation {
@@ -474,13 +510,10 @@ function metarTemperature(value: number) {
   return `${sign}${String(Math.abs(rounded)).padStart(2, "0")}`
 }
 
-function rawTexts(filePath: string) {
-  return fs
-    .readFileSync(filePath, "utf8")
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => line.split("\t").slice(1).join("\t"))
+function rawTexts(stationCode: string, localDate: string) {
+  return readRawMetarEntries(stationCode, localDate).map(
+    (entry) => entry.rawText
+  )
 }
 
 function normalizedRaw(rawText: string) {

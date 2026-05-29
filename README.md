@@ -26,7 +26,7 @@ Historical observations come from Iowa Environmental Mesonet sources:
 - `https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py`
 - `https://mesonet.agron.iastate.edu/geojson/networks.py`
 
-The app stores station metadata and ingest/backfill status in SQLite. Raw METAR observations are stored as plain-text source lines and parsed on read so displayed values can be audited against the original source text.
+The app stores station metadata, ingest/backfill status, and compressed station/day raw METAR payloads in SQLite. Raw observations are parsed on read so displayed values can be audited against the original source text.
 
 ## Stack
 
@@ -35,7 +35,7 @@ The app stores station metadata and ingest/backfill status in SQLite. Raw METAR 
 - TanStack Table
 - Recharts through the shadcn chart component
 - SQLite with explicit startup migrations
-- Plain-text raw METAR files split by station and local day
+- Compressed raw METAR payloads split by station and local day in SQLite
 - Bun for package management and command execution
 
 ## Local Setup
@@ -57,12 +57,12 @@ This repo uses Bun. Do not add pnpm, npm, or yarn lockfiles.
 Defaults:
 
 - SQLite metadata/status: `data/weather-metars.sqlite`
-- Raw METAR observations: `data/raw-metars/<STATION>/<YYYY>/<MM>/<YYYY-MM-DD>.txt`
+- Raw METAR observations: compressed station/day rows in SQLite table `station_day_raw_metars`
 
 Environment variables:
 
 - `WEATHERMETARS_DB_PATH`: SQLite database path.
-- `WEATHERMETARS_RAW_DIR`: raw METAR directory.
+- `WEATHERMETARS_RAW_DIR`: optional legacy raw METAR text-file import directory.
 - `AWC_USER_AGENT`: custom user agent for NOAA and IEM requests.
 
 Copy `.env.example` for local overrides.
@@ -82,7 +82,7 @@ bun run build
 
 ## Historical Backfill
 
-The historical backfill is resumable. It records progress in SQLite and writes raw METAR lines into `data/raw-metars`.
+The historical backfill is resumable. It records progress in SQLite and writes raw METAR lines into compressed station/day SQLite payloads.
 
 Preview the full global plan:
 

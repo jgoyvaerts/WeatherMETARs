@@ -37,7 +37,7 @@ export PORT="${PORT:-3000}"
 export WEATHERMETARS_DB_PATH="${WEATHERMETARS_DB_PATH:-$APP_DATA_DIR/weather-metars.sqlite}"
 export WEATHERMETARS_RAW_DIR="${WEATHERMETARS_RAW_DIR:-$APP_DATA_DIR/raw-metars}"
 
-mkdir -p "$(dirname "$WEATHERMETARS_DB_PATH")" "$WEATHERMETARS_RAW_DIR"
+mkdir -p "$(dirname "$WEATHERMETARS_DB_PATH")"
 
 NODE_ENV=development bun install --frozen-lockfile
 NODE_ENV=production bun run build

@@ -6,7 +6,7 @@ The deploy workflow keeps credentials out of git:
 
 - GitHub Actions stores only SSH deploy credentials in the `production` environment secrets.
 - Runtime app config stays on the server in `/etc/weathermetars/weathermetars.env`.
-- SQLite and raw METAR files live on the mounted Hetzner volume.
+- SQLite lives on the mounted Hetzner volume and contains the compressed raw METAR payloads.
 
 ## Server Layout
 

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { IEM_ASOS_REQUEST_URL } from "./config.server"
 import { closeSqliteForTests, getSqlite } from "./db.server"
-import { rawMetarPath } from "./raw-files.server"
+import { readRawMetarEntries } from "./raw-files.server"
 import {
   parseSaoArchiveText,
   planSaoArchiveChunks,
@@ -208,10 +208,9 @@ describe("runSaoArchiveBackfill", () => {
       (message) => progress.push(message)
     )
     const db = getSqlite()
-    const rawLines = fs
-      .readFileSync(rawMetarPath("KLAX", "2026-05-22"), "utf8")
-      .trim()
-      .split("\n")
+    const rawLines = readRawMetarEntries("KLAX", "2026-05-22").map(
+      (entry) => entry.rawText
+    )
     const ingestRun = db
       .prepare("SELECT source FROM ingest_runs ORDER BY id DESC LIMIT 1")
       .get() as { source: string }
@@ -226,8 +225,8 @@ describe("runSaoArchiveBackfill", () => {
       failedChunkCount: 0,
     })
     expect(rawLines).toHaveLength(1)
-    expect(rawLines[0]).toContain(
-      "KLAX 221253Z 26008KT 10SM FEW020 20/13 A2992"
+    expect(rawLines[0]).toBe(
+      "METAR KLAX 221253Z 26008KT 10SM FEW020 20/13 A2992"
     )
     expect(ingestRun.source).toBe(IEM_ASOS_REQUEST_URL)
     expect(progress).toContain(
