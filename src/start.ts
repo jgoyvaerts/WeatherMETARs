@@ -12,11 +12,11 @@ const csrfMiddleware = createCsrfMiddleware({
 })
 
 const publicCacheMiddleware = createMiddleware().server(
-  async ({ next, request }) => {
+  async ({ handlerType, next, request }) => {
     const result = await next()
     const { response } = result
 
-    if (isPublicCacheableResponse(request, response)) {
+    if (isPublicCacheableResponse(handlerType, request, response)) {
       response.headers.set("Cache-Control", BROWSER_CACHE_CONTROL)
       response.headers.set("CDN-Cache-Control", CDN_CACHE_CONTROL)
       response.headers.set("Cloudflare-CDN-Cache-Control", CDN_CACHE_CONTROL)
@@ -26,7 +26,15 @@ const publicCacheMiddleware = createMiddleware().server(
   }
 )
 
-function isPublicCacheableResponse(request: Request, response: Response) {
+function isPublicCacheableResponse(
+  handlerType: "serverFn" | "router",
+  request: Request,
+  response: Response
+) {
+  if (handlerType === "serverFn") {
+    return false
+  }
+
   const method = request.method.toUpperCase()
 
   if (method !== "GET" && method !== "HEAD") {

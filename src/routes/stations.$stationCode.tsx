@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { getStationDay } from "@/lib/weather/weather.functions"
+import type { PublicStationDayResponse } from "@/lib/weather/station-day-public"
 import { formatTemperature } from "@/lib/weather/units"
 import type { TemperatureUnit } from "@/lib/weather/types"
 
@@ -24,15 +24,43 @@ export const Route = createFileRoute("/stations/$stationCode")({
   loaderDeps: ({ search }) => ({
     date: search.date,
   }),
-  loader: ({ params, deps }) =>
-    getStationDay({
-      data: {
-        stationCode: params.stationCode,
-        date: deps.date,
-      },
-    }),
+  loader: ({ params, deps }) => loadStationDay(params.stationCode, deps.date),
   component: StationRoute,
 })
+
+async function loadStationDay(
+  stationCode: string,
+  date: string | undefined
+): Promise<PublicStationDayResponse> {
+  if (import.meta.env.SSR) {
+    const [{ toPublicStationDayResponse }, { getStationDayFromDb }] =
+      await Promise.all([
+        import("@/lib/weather/station-day-public"),
+        import("@/lib/weather/weather.server"),
+      ])
+    return toPublicStationDayResponse(getStationDayFromDb(stationCode, date))
+  }
+
+  const response = await fetch(stationDayApiPath(stationCode, date), {
+    headers: { Accept: "application/json" },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to load station day: ${response.status}`)
+  }
+
+  return (await response.json()) as PublicStationDayResponse
+}
+
+function stationDayApiPath(stationCode: string, date: string | undefined) {
+  const path = `/api/stations/${encodeURIComponent(stationCode)}/day`
+
+  if (!date) {
+    return path
+  }
+
+  return `${path}?${new URLSearchParams({ date })}`
+}
 
 function StationRoute() {
   const data = Route.useLoaderData()

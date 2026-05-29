@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StationsStationCodeRouteImport } from './routes/stations.$stationCode'
+import { Route as ApiStationsStationCodeDayRouteImport } from './routes/api.stations.$stationCode.day'
 
 const FaqRoute = FaqRouteImport.update({
   id: '/faq',
@@ -28,35 +29,54 @@ const StationsStationCodeRoute = StationsStationCodeRouteImport.update({
   path: '/stations/$stationCode',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStationsStationCodeDayRoute =
+  ApiStationsStationCodeDayRouteImport.update({
+    id: '/api/stations/$stationCode/day',
+    path: '/api/stations/$stationCode/day',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/faq': typeof FaqRoute
   '/stations/$stationCode': typeof StationsStationCodeRoute
+  '/api/stations/$stationCode/day': typeof ApiStationsStationCodeDayRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/faq': typeof FaqRoute
   '/stations/$stationCode': typeof StationsStationCodeRoute
+  '/api/stations/$stationCode/day': typeof ApiStationsStationCodeDayRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/faq': typeof FaqRoute
   '/stations/$stationCode': typeof StationsStationCodeRoute
+  '/api/stations/$stationCode/day': typeof ApiStationsStationCodeDayRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/faq' | '/stations/$stationCode'
+  fullPaths:
+    | '/'
+    | '/faq'
+    | '/stations/$stationCode'
+    | '/api/stations/$stationCode/day'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/faq' | '/stations/$stationCode'
-  id: '__root__' | '/' | '/faq' | '/stations/$stationCode'
+  to: '/' | '/faq' | '/stations/$stationCode' | '/api/stations/$stationCode/day'
+  id:
+    | '__root__'
+    | '/'
+    | '/faq'
+    | '/stations/$stationCode'
+    | '/api/stations/$stationCode/day'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FaqRoute: typeof FaqRoute
   StationsStationCodeRoute: typeof StationsStationCodeRoute
+  ApiStationsStationCodeDayRoute: typeof ApiStationsStationCodeDayRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StationsStationCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stations/$stationCode/day': {
+      id: '/api/stations/$stationCode/day'
+      path: '/api/stations/$stationCode/day'
+      fullPath: '/api/stations/$stationCode/day'
+      preLoaderRoute: typeof ApiStationsStationCodeDayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +116,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FaqRoute: FaqRoute,
   StationsStationCodeRoute: StationsStationCodeRoute,
+  ApiStationsStationCodeDayRoute: ApiStationsStationCodeDayRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

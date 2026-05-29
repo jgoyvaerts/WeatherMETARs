@@ -6,11 +6,12 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import type { ChartConfig } from "@/components/ui/chart"
+import type { PublicTemperaturePoint } from "@/lib/weather/station-day-public"
 import { temperatureValue } from "@/lib/weather/units"
-import type { TemperaturePoint, TemperatureUnit } from "@/lib/weather/types"
+import type { TemperatureUnit } from "@/lib/weather/types"
 
 type TemperatureChartClientProps = {
-  points: TemperaturePoint[]
+  points: PublicTemperaturePoint[]
   unit: TemperatureUnit
 }
 

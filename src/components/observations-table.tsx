@@ -15,11 +15,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import type { PublicObservationRow } from "@/lib/weather/station-day-public"
 import { formatTemperature } from "@/lib/weather/units"
-import type { ObservationRow, TemperatureUnit } from "@/lib/weather/types"
+import type { TemperatureUnit } from "@/lib/weather/types"
 
 type ObservationsTableProps = {
-  observations: ObservationRow[]
+  observations: PublicObservationRow[]
   unit: TemperatureUnit
 }
 
@@ -36,7 +37,7 @@ export function ObservationsTable({
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "observedAtUtc", desc: false },
   ])
-  const columns = React.useMemo<ColumnDef<ObservationRow>[]>(
+  const columns = React.useMemo<ColumnDef<PublicObservationRow>[]>(
     () => [
       {
         accessorKey: "observedAtUtc",

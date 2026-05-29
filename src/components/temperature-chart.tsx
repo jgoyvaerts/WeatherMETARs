@@ -1,9 +1,10 @@
 import * as React from "react"
 
-import type { TemperaturePoint, TemperatureUnit } from "@/lib/weather/types"
+import type { PublicTemperaturePoint } from "@/lib/weather/station-day-public"
+import type { TemperatureUnit } from "@/lib/weather/types"
 
 type TemperatureChartProps = {
-  points: TemperaturePoint[]
+  points: PublicTemperaturePoint[]
   unit: TemperatureUnit
 }
 
