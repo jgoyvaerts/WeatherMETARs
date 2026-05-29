@@ -277,29 +277,35 @@ export function planMetarStationGapRepairWindows({
 
     detectedStationGapCount += gaps.length
 
-    for (const gap of gaps) {
-      const start = floorUtcHour(new Date(gap.startedAtUtc))
-      const end = ceilUtcHour(new Date(gap.endedAtUtc))
+    if (gaps.length === 0) {
+      continue
+    }
 
-      if (!isAfter(end, start)) {
-        continue
-      }
+    const start = gaps
+      .map((gap) => floorUtcHour(new Date(gap.startedAtUtc)))
+      .reduce((minimum, current) => minDate(minimum, current))
+    const end = gaps
+      .map((gap) => ceilUtcHour(new Date(gap.endedAtUtc)))
+      .reduce((maximum, current) => maxDate(maximum, current))
 
-      windows.push({
-        stationCode: candidate.stationCode,
-        localDate: candidate.localDate,
-        startDate: formatUtc(start),
-        endDate: formatUtc(end),
-        gapCount: 1,
-        priority: candidate.priority,
-      })
+    if (!isAfter(end, start)) {
+      continue
+    }
 
-      if (windows.length >= maxStationGapWindowsPerRun) {
-        return {
-          windows: mergeStationGapRepairWindows(windows),
-          checkedStationDayCount,
-          detectedStationGapCount,
-        }
+    windows.push({
+      stationCode: candidate.stationCode,
+      localDate: candidate.localDate,
+      startDate: formatUtc(start),
+      endDate: formatUtc(end),
+      gapCount: gaps.length,
+      priority: candidate.priority,
+    })
+
+    if (windows.length >= maxStationGapWindowsPerRun) {
+      return {
+        windows: mergeStationGapRepairWindows(windows),
+        checkedStationDayCount,
+        detectedStationGapCount,
       }
     }
   }
@@ -429,6 +435,7 @@ function mergeStationGapRepairWindows(windows: MetarStationGapRepairWindow[]) {
     if (
       previous &&
       previous.stationCode === window.stationCode &&
+      previous.localDate === window.localDate &&
       previous.endDate >= window.startDate
     ) {
       previous.endDate =
@@ -450,6 +457,7 @@ function stationGapRepairWindowSort(
   return (
     right.priority - left.priority ||
     left.stationCode.localeCompare(right.stationCode) ||
+    left.localDate.localeCompare(right.localDate) ||
     left.startDate.localeCompare(right.startDate) ||
     left.endDate.localeCompare(right.endDate)
   )
@@ -493,6 +501,10 @@ function isAfter(left: Date, right: Date) {
 
 function minDate(left: Date, right: Date) {
   return isAfter(left, right) ? right : left
+}
+
+function maxDate(left: Date, right: Date) {
+  return isAfter(left, right) ? left : right
 }
 
 function formatUtc(date: Date) {
