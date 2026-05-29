@@ -29,11 +29,13 @@ APP_DATA_DIR=/mnt/HC_Volume_123456/weathermetars
 
 ## One-Time VPS Setup
 
-Install base packages, create or choose a deploy user, and install Bun for that user. On Debian/Ubuntu:
+Install base packages, Node 22 for native package builds, create or choose a deploy user, and install Bun for that user. On Debian/Ubuntu:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y curl unzip rsync nginx
+sudo apt-get install -y curl unzip rsync nginx build-essential python3
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
 sudo adduser --disabled-password --gecos "" deploy
 sudo -iu deploy
 curl -fsSL https://bun.sh/install | bash

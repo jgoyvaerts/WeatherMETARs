@@ -33,6 +33,19 @@ fi
 APP_HOME="$(getent passwd "$APP_USER" | cut -d: -f6)"
 BUN_BIN="${BUN_BIN:-$APP_HOME/.bun/bin/bun}"
 
+for required_tool in node python3 make g++; do
+  if ! command -v "$required_tool" >/dev/null 2>&1; then
+    echo "Missing required build tool: $required_tool" >&2
+    echo "Install Node 22, build-essential, and python3 before running setup." >&2
+    exit 1
+  fi
+done
+
+if ! node -e "const major = Number(process.versions.node.split('.')[0]); process.exit(major >= 22 ? 0 : 1)" >/dev/null 2>&1; then
+  echo "Node 22 or newer is required for node-gyp. Current version: $(node --version)" >&2
+  exit 1
+fi
+
 sed_escape() {
   printf '%s' "$1" | sed -e 's/[#&\\]/\\&/g'
 }
